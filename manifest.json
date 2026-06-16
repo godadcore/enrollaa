@@ -1,0 +1,20 @@
+{
+  "short_name": "Enrollaa",
+  "name": "Enrollaa Admission Tracker",
+  "icons": [
+    {
+      "src": "Light mode App And Socials Icon.png",
+      "type": "image/png",
+      "sizes": "192x192"
+    },
+    {
+      "src": "Dark mode App And Socials Icon.png",
+      "type": "image/png",
+      "sizes": "512x512"
+    }
+  ],
+  "start_url": "/index.html",
+  "background_color": "#0D1117",
+  "theme_color": "#37E915",
+  "display": "standalone"
+}
