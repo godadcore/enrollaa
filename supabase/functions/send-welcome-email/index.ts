@@ -1,10 +1,9 @@
+/// <reference path="../deno.d.ts" />
 // Supabase Edge Function: send-welcome-email
-// FIX: Resolves 546 WORKER_RESOURCE_LIMIT by:
-//  1. Building HTML template ONCE at module scope (not per-request)
-//  2. Adding a 4-second AbortController timeout on the Resend fetch
-//  3. Using EdgeRuntime.waitUntil() so response returns immediately,
-//     email is sent in the background — no user-facing timeout
-//  4. Structured logging at every step for traceability
+// Sends dual emails via Resend:
+//  1. Welcome email -> to the waitlist subscriber
+//  2. Founder/Admin notification -> to the ADMIN_EMAIL secret address
+// Uses EdgeRuntime.waitUntil() for zero-latency background execution.
 
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 
@@ -16,10 +15,7 @@ const CORS = {
   "Access-Control-Allow-Methods": "POST, OPTIONS",
 };
 
-// ─── Email HTML Template (built ONCE at module load, not per request) ─────────
-// This is the critical fix for 546: heavy string work happens at cold-start,
-// not on every invocation. The {{NAME}} placeholder is replaced per-request
-// with a single lightweight .replace() call.
+// ─── Email HTML Template (built ONCE at module load) ────────────────────────
 const EMAIL_TEMPLATE = `<!DOCTYPE html>
 <html lang="en">
 <head>
@@ -77,7 +73,7 @@ const EMAIL_TEMPLATE = `<!DOCTYPE html>
           <tr>
             <td style="border-top:1px solid rgba(255,255,255,0.08);padding:24px 32px;text-align:center;">
               <p style="color:#5A6273;font-size:12px;margin:0;">
-                © 2026 Enrollaa · You received this because you joined the waitlist at enrollaa.com<br/>
+                © 2026 Enrollaa · You received this because you joined the waitlist at enrollaa.com.ng<br/>
                 If you didn't sign up, you can safely ignore this email.
               </p>
             </td>
@@ -89,15 +85,13 @@ const EMAIL_TEMPLATE = `<!DOCTYPE html>
 </body>
 </html>`;
 
-// ─── Send Email via Resend (with 4-second hard timeout) ───────────────────────
+// ─── Send Welcome Email via Resend (with 4-second timeout guard) ───────────────
 async function sendWelcomeEmail(name: string, email: string, apiKey: string): Promise<{ ok: boolean; id?: string; error?: string }> {
   const t0 = Date.now();
-
-  // AbortController gives us a clean exit if Resend takes too long
   const controller = new AbortController();
   const timer = setTimeout(() => {
     controller.abort();
-    console.error(`[send-welcome-email] Resend fetch ABORTED after 4000ms for ${email}`);
+    console.error(`[send-welcome-email] Welcome email Resend fetch ABORTED after 4000ms for ${email}`);
   }, 4000);
 
   try {
@@ -110,9 +104,7 @@ async function sendWelcomeEmail(name: string, email: string, apiKey: string): Pr
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        // ⚠️  Change this to your verified Resend sender domain.
-        // During testing use: onboarding@resend.dev (delivers only to your own account email)
-        from: "Enrollaa <hello@enrollaa.com>",
+        from: "Enrollaa <hello@enrollaa.com.ng>",
         to: [email],
         subject: "You're on the Enrollaa Waitlist! 🎉",
         html,
@@ -123,7 +115,6 @@ async function sendWelcomeEmail(name: string, email: string, apiKey: string): Pr
     clearTimeout(timer);
     const elapsed = Date.now() - t0;
 
-    // Read body safely — a failed response might have a non-JSON body
     let body: Record<string, unknown> = {};
     try {
       body = await res.json();
@@ -132,11 +123,11 @@ async function sendWelcomeEmail(name: string, email: string, apiKey: string): Pr
     }
 
     if (!res.ok) {
-      console.error(`[send-welcome-email] Resend error ${res.status} in ${elapsed}ms:`, JSON.stringify(body));
+      console.error(`[send-welcome-email] Welcome email Resend error ${res.status} in ${elapsed}ms:`, JSON.stringify(body));
       return { ok: false, error: `Resend HTTP ${res.status}: ${JSON.stringify(body)}` };
     }
 
-    console.log(`[send-welcome-email] Email sent OK in ${elapsed}ms → id=${body.id} to=${email}`);
+    console.log(`[send-welcome-email] Welcome email sent OK in ${elapsed}ms → id=${body.id} to=${email}`);
     return { ok: true, id: body.id as string };
 
   } catch (err: unknown) {
@@ -144,7 +135,108 @@ async function sendWelcomeEmail(name: string, email: string, apiKey: string): Pr
     const elapsed = Date.now() - t0;
     const msg = err instanceof Error ? err.message : String(err);
     const isAbort = msg.includes("aborted") || msg.includes("AbortError");
-    console.error(`[send-welcome-email] Fetch ${isAbort ? "TIMEOUT" : "EXCEPTION"} after ${elapsed}ms:`, msg);
+    console.error(`[send-welcome-email] Welcome email fetch ${isAbort ? "TIMEOUT" : "EXCEPTION"} after ${elapsed}ms:`, msg);
+    return { ok: false, error: isAbort ? "Resend API timeout (>4s)" : msg };
+  }
+}
+
+// ─── Send Founder/Admin Notification via Resend ──────────────────────────────
+async function sendAdminNotification(name: string, email: string, apiKey: string, adminEmail: string): Promise<{ ok: boolean; id?: string; error?: string }> {
+  if (!adminEmail) {
+    console.log("[send-welcome-email] ADMIN_EMAIL secret is not set, skipping founder notification.");
+    return { ok: false, error: "ADMIN_EMAIL secret is not set" };
+  }
+
+  const t0 = Date.now();
+  const controller = new AbortController();
+  const timer = setTimeout(() => {
+    controller.abort();
+    console.error(`[send-welcome-email] Admin notification fetch ABORTED after 4000ms`);
+  }, 4000);
+
+  try {
+    const timestamp = new Date().toISOString();
+    const html = `<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+  <title>New Enrollaa waitlist signup</title>
+</head>
+<body style="margin:0;padding:0;background-color:#0D1117;font-family:system-ui,-apple-system,sans-serif;color:#FFFFFF;">
+  <table width="100%" cellpadding="0" cellspacing="0" style="background-color:#0D1117;padding:40px 20px;">
+    <tr>
+      <td align="center">
+        <table width="100%" cellpadding="0" cellspacing="0"
+          style="max-width:560px;background:#151152;border:1px solid rgba(255,255,255,0.1);border-radius:16px;overflow:hidden;">
+          <tr>
+            <td style="background:linear-gradient(135deg,#0F0040,#1a0060);padding:32px;text-align:center;">
+              <span style="font-size:36px;font-weight:800;color:#FFFFFF;letter-spacing:-1px;">
+                Enr<span style="color:#37E915;">o</span>llaa
+              </span>
+            </td>
+          </tr>
+          <tr>
+            <td style="padding:40px 32px;">
+              <h2 style="color:#37E915;font-size:22px;font-weight:700;margin:0 0 16px;">
+                New Enrollaa waitlist signup 🎉
+              </h2>
+              <p style="color:#A5ADCF;font-size:15px;line-height:1.6;margin:0 0 20px;">
+                A new user has just joined the Enrollaa waitlist:
+              </p>
+              <div style="background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.1);border-radius:12px;padding:20px;margin-bottom:20px;">
+                <p style="color:#FFFFFF;font-size:15px;margin:0 0 8px;"><strong>Name:</strong> ${name}</p>
+                <p style="color:#FFFFFF;font-size:15px;margin:0 0 8px;"><strong>Email:</strong> ${email}</p>
+                <p style="color:#A5ADCF;font-size:14px;margin:0;"><strong>Joined:</strong> ${timestamp}</p>
+              </div>
+            </td>
+          </tr>
+        </table>
+      </td>
+    </tr>
+  </table>
+</body>
+</html>`;
+
+    const res = await fetch("https://api.resend.com/emails", {
+      method: "POST",
+      headers: {
+        "Authorization": `Bearer ${apiKey}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        from: "Enrollaa <hello@enrollaa.com.ng>",
+        to: [adminEmail],
+        subject: "New Enrollaa waitlist signup",
+        html,
+      }),
+      signal: controller.signal,
+    });
+
+    clearTimeout(timer);
+    const elapsed = Date.now() - t0;
+
+    let body: Record<string, unknown> = {};
+    try {
+      body = await res.json();
+    } catch {
+      body = { raw: await res.text().catch(() => "(unreadable)") };
+    }
+
+    if (!res.ok) {
+      console.error(`[send-welcome-email] Admin notification Resend error ${res.status} in ${elapsed}ms:`, JSON.stringify(body));
+      return { ok: false, error: `Resend HTTP ${res.status}: ${JSON.stringify(body)}` };
+    }
+
+    console.log(`[send-welcome-email] Admin notification sent OK in ${elapsed}ms → id=${body.id}`);
+    return { ok: true, id: body.id as string };
+
+  } catch (err: unknown) {
+    clearTimeout(timer);
+    const elapsed = Date.now() - t0;
+    const msg = err instanceof Error ? err.message : String(err);
+    const isAbort = msg.includes("aborted") || msg.includes("AbortError");
+    console.error(`[send-welcome-email] Admin notification fetch ${isAbort ? "TIMEOUT" : "EXCEPTION"} after ${elapsed}ms:`, msg);
     return { ok: false, error: isAbort ? "Resend API timeout (>4s)" : msg };
   }
 }
@@ -190,52 +282,67 @@ serve(async (req: Request) => {
     );
   }
 
-  console.log(`[send-welcome-email] Received request — name="${name}" email="${email}"`);
+  const ADMIN_EMAIL = (Deno.env.get("ADMIN_EMAIL") ?? "").trim();
 
-  // 4. KEY FIX: Use EdgeRuntime.waitUntil() so the email is sent in the
-  //    background AFTER we've already returned 200 to the browser.
-  //    This means Resend latency (0–3s) NEVER causes a timeout for the user.
-  //    The function worker stays alive to finish the email send.
-  const emailPromise = sendWelcomeEmail(name, email, RESEND_API_KEY);
+  console.log(`[send-welcome-email] Received signup event — name="${name}" email="${email}"`);
 
-  // Check if waitUntil is available (it is in Supabase Edge Runtime)
+  // 4. Dispatch both emails concurrently (Welcome email + Admin notification)
+  const dualEmailPromise = Promise.allSettled([
+    sendWelcomeEmail(name, email, RESEND_API_KEY),
+    sendAdminNotification(name, email, RESEND_API_KEY, ADMIN_EMAIL),
+  ]);
+
+  // Use EdgeRuntime.waitUntil() so emails process in background without blocking response
   // @ts-ignore — EdgeRuntime is a Deno Deploy / Supabase global
   if (typeof EdgeRuntime !== "undefined" && EdgeRuntime.waitUntil) {
     // @ts-ignore
     EdgeRuntime.waitUntil(
-      emailPromise.then((result) => {
+      dualEmailPromise.then(([welcomeRes, adminRes]) => {
         const elapsed = Date.now() - start;
-        if (!result.ok) {
-          console.error(`[send-welcome-email] Background email FAILED after ${elapsed}ms:`, result.error);
+        if (welcomeRes.status === "fulfilled" && welcomeRes.value.ok) {
+          console.log(`[send-welcome-email] Welcome email DONE in ${elapsed}ms — id=${welcomeRes.value.id}`);
         } else {
-          console.log(`[send-welcome-email] Background email DONE in ${elapsed}ms — id=${result.id}`);
+          const err = welcomeRes.status === "fulfilled" ? welcomeRes.value.error : welcomeRes.reason;
+          console.error(`[send-welcome-email] Welcome email FAILED after ${elapsed}ms:`, err);
+        }
+
+        if (adminRes.status === "fulfilled" && adminRes.value.ok) {
+          console.log(`[send-welcome-email] Admin notification DONE in ${elapsed}ms — id=${adminRes.value.id}`);
+        } else if (ADMIN_EMAIL) {
+          const err = adminRes.status === "fulfilled" ? adminRes.value.error : adminRes.reason;
+          console.error(`[send-welcome-email] Admin notification FAILED after ${elapsed}ms:`, err);
         }
       })
     );
 
-    // Respond to the browser immediately — don't wait for Resend
     console.log(`[send-welcome-email] Response sent immediately to client in ${Date.now() - start}ms`);
     return new Response(
-      JSON.stringify({ ok: true, message: "Email queued" }),
+      JSON.stringify({ ok: true, message: "Emails queued" }),
       { status: 200, headers: { ...CORS, "Content-Type": "application/json" } }
     );
   }
 
-  // 5. Fallback: if waitUntil is unavailable, await directly (still has timeout guard)
-  const result = await emailPromise;
+  // 5. Fallback: await directly if EdgeRuntime.waitUntil is unavailable
+  const [welcomeRes, adminRes] = await dualEmailPromise;
   const elapsed = Date.now() - start;
 
-  if (!result.ok) {
-    console.error(`[send-welcome-email] Email FAILED in ${elapsed}ms:`, result.error);
+  const welcomeOk = welcomeRes.status === "fulfilled" && welcomeRes.value.ok;
+  if (!welcomeOk) {
+    const err = welcomeRes.status === "fulfilled" ? welcomeRes.value.error : String(welcomeRes.reason);
+    console.error(`[send-welcome-email] Welcome email FAILED in ${elapsed}ms:`, err);
     return new Response(
-      JSON.stringify({ ok: false, error: result.error }),
+      JSON.stringify({ ok: false, error: err }),
       { status: 500, headers: { ...CORS, "Content-Type": "application/json" } }
     );
   }
 
-  console.log(`[send-welcome-email] Email SUCCESS in ${elapsed}ms — id=${result.id}`);
+  console.log(`[send-welcome-email] Both emails processed in ${elapsed}ms`);
   return new Response(
-    JSON.stringify({ ok: true, id: result.id }),
+    JSON.stringify({
+      ok: true,
+      welcomeId: welcomeRes.status === "fulfilled" ? welcomeRes.value.id : undefined,
+      adminId: adminRes.status === "fulfilled" ? adminRes.value.id : undefined,
+    }),
     { status: 200, headers: { ...CORS, "Content-Type": "application/json" } }
   );
 });
