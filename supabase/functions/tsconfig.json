@@ -3,11 +3,17 @@
     "target": "esnext",
     "module": "esnext",
     "moduleResolution": "node",
-    "lib": ["esnext", "dom"],
+    "lib": [
+      "esnext",
+      "dom"
+    ],
     "noEmit": true,
     "allowJs": true,
     "skipLibCheck": true,
     "types": []
   },
-  "include": ["**/*.ts", "**/*.d.ts"]
+  "include": [
+    "**/*.ts",
+    "**/*.d.ts"
+  ]
 }

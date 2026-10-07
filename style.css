@@ -19,15 +19,15 @@
     --dark-navy-light: #151152;
     --light-gray: #F7F8FA;
     --white: #FFFFFF;
-    
+
     --text-light: #FFFFFF;
     --text-muted-light: #A5ADCF;
     --text-dark: #0F0040;
     --text-muted-dark: #5C6A8D;
-    
+
     --font-heading: 'Syne', sans-serif;
     --font-body: 'DM Sans', sans-serif;
-    
+
     --transition-smooth: all 0.3s ease;
     --border-radius-sm: 8px;
     --border-radius-md: 16px;
@@ -56,7 +56,12 @@ body {
     overflow-x: hidden;
 }
 
-h1, h2, h3, h4, h5, h6 {
+h1,
+h2,
+h3,
+h4,
+h5,
+h6 {
     font-family: var(--font-heading);
     font-weight: 700;
     line-height: 1.2;
@@ -85,7 +90,9 @@ button {
     transition: var(--transition-smooth);
 }
 
-input, select, textarea {
+input,
+select,
+textarea {
     font-family: var(--font-body);
     outline: none;
 }
@@ -98,19 +105,45 @@ input, select, textarea {
     padding: 0 24px;
 }
 
-.text-center { text-align: center; }
-.bg-dark { background-color: var(--dark-navy); color: var(--text-light); }
-.bg-light { background-color: var(--light-gray); color: var(--text-dark); }
-.bg-white { background-color: var(--white); color: var(--text-dark); }
+.text-center {
+    text-align: center;
+}
 
-/* Color overrides for dark/light sections */
-.bg-dark h1, .bg-dark h2, .bg-dark h3, .bg-dark h4 {
+.bg-dark {
+    background-color: var(--dark-navy);
     color: var(--text-light);
 }
 
-.bg-light h1, .bg-light h2, .bg-light h3, .bg-light h4,
-.bg-white h1, .bg-white h2, .bg-white h3, .bg-white h4,
-.feature-card-stack h1, .feature-card-stack h2, .feature-card-stack h3, .feature-card-stack h4 {
+.bg-light {
+    background-color: var(--light-gray);
+    color: var(--text-dark);
+}
+
+.bg-white {
+    background-color: var(--white);
+    color: var(--text-dark);
+}
+
+/* Color overrides for dark/light sections */
+.bg-dark h1,
+.bg-dark h2,
+.bg-dark h3,
+.bg-dark h4 {
+    color: var(--text-light);
+}
+
+.bg-light h1,
+.bg-light h2,
+.bg-light h3,
+.bg-light h4,
+.bg-white h1,
+.bg-white h2,
+.bg-white h3,
+.bg-white h4,
+.feature-card-stack h1,
+.feature-card-stack h2,
+.feature-card-stack h3,
+.feature-card-stack h4 {
     color: var(--text-dark) !important;
 }
 
@@ -210,7 +243,8 @@ header {
     color: var(--text-muted-light);
 }
 
-.nav-link:hover, .nav-link.active {
+.nav-link:hover,
+.nav-link.active {
     color: var(--white);
 }
 
@@ -342,15 +376,20 @@ header {
     display: inline-block;
     width: 140px;
     height: 16px;
-    background: linear-gradient(90deg, rgba(255,255,255,0.08) 25%, rgba(255,255,255,0.18) 50%, rgba(255,255,255,0.08) 75%);
+    background: linear-gradient(90deg, rgba(255, 255, 255, 0.08) 25%, rgba(255, 255, 255, 0.18) 50%, rgba(255, 255, 255, 0.08) 75%);
     background-size: 200% 100%;
     animation: skeleton-shimmer 1.5s infinite;
     border-radius: 4px;
 }
 
 @keyframes skeleton-shimmer {
-    0% { background-position: 200% 0; }
-    100% { background-position: -200% 0; }
+    0% {
+        background-position: 200% 0;
+    }
+
+    100% {
+        background-position: -200% 0;
+    }
 }
 
 /* Tag Pill Styling */
@@ -549,7 +588,8 @@ header {
     display: flex;
     align-items: center;
     justify-content: center;
-    margin-bottom: 0; /* Override old center block style */
+    margin-bottom: 0;
+    /* Override old center block style */
 }
 
 .feature-card-stack .feature-icon-wrapper svg {
@@ -872,7 +912,7 @@ footer p {
     .hero h1 {
         font-size: 46px;
     }
-    
+
     .problem-banner-content {
         margin-left: auto;
         margin-right: auto;
@@ -888,22 +928,23 @@ footer p {
         position: relative;
         top: 0;
     }
-    
+
     .waitlist-grid {
         gap: 40px;
     }
 }
 
 @media (max-width: 767px) {
+
     /* Header & Mobile Navigation */
     header {
         padding: 16px 0;
     }
-    
+
     .hamburger {
         display: flex;
     }
-    
+
     .nav-links {
         position: fixed;
         top: 0;
@@ -916,19 +957,19 @@ footer p {
         justify-content: center;
         align-items: center;
         gap: 40px;
-        box-shadow: -10px 0 30px rgba(0,0,0,0.3);
+        box-shadow: -10px 0 30px rgba(0, 0, 0, 0.3);
         transition: right 0.4s ease;
         z-index: 105;
     }
-    
+
     .nav-links.active {
         right: 0;
     }
-    
+
     .nav-link {
         font-size: 20px;
     }
-    
+
     /* Mobile Button Scaling */
     .btn {
         padding: 10px 20px;
@@ -945,94 +986,95 @@ footer p {
         padding: 12px 24px;
         font-size: 15px;
     }
-    
+
     /* ===== GLOBAL: Equal left/right padding on mobile ===== */
     .container {
         padding: 0 20px;
     }
-    
+
     /* Hero Section */
     .hero {
         padding: 120px 0 60px;
     }
-    
+
     .hero-grid {
         grid-template-columns: 1fr;
         gap: 32px;
         text-align: center;
     }
-    
+
     .hero-content {
         align-items: center;
     }
-    
+
     .hero h1 {
         font-size: 32px;
         letter-spacing: -1px;
     }
-    
+
     .hero p {
         font-size: 16px;
         max-width: 100%;
     }
-    
+
     .hero-image {
-        grid-row: 1; /* Illustration stacks above text */
+        grid-row: 1;
+        /* Illustration stacks above text */
     }
-    
+
     .hero-image img {
         max-width: 240px;
     }
-    
+
     /* Headcount / Avatar row centering */
     .hero-cta-wrapper {
         align-items: center;
     }
-    
+
     .headcount-container {
         justify-content: center;
         text-align: center;
         flex-direction: column;
         gap: 8px;
     }
-    
+
     /* Problem Section */
     .problem-section {
         padding: 60px 0;
     }
-    
+
     .problem-banner-content {
         text-align: center;
         padding: 0;
     }
-    
+
     .problem-banner-content h2 {
         font-size: 24px;
         line-height: 1.5;
     }
-    
+
     .crisis-intro-text {
         font-size: 15px;
         margin-bottom: 24px;
     }
-    
+
     .crisis-item h3 {
         font-size: 18px;
     }
-    
+
     .crisis-item p {
         font-size: 14px;
     }
-    
+
     /* Features Section */
     .features-section {
         padding: 60px 0;
     }
-    
+
     .solution-header {
         text-align: center;
     }
-    
+
     .solution-header h2 {
         font-size: 30px;
         margin-bottom: 16px;
@@ -1046,49 +1088,50 @@ footer p {
         grid-template-columns: 1fr;
         gap: 40px;
     }
-    
+
     .feature-card-stack {
         padding: 24px;
         gap: 16px;
     }
-    
+
     /* Footer centering */
     .footer-content {
         text-align: center;
         align-items: center;
     }
-    
+
     .footer-logo {
         display: flex;
         justify-content: center;
     }
-    
+
     .social-links {
         justify-content: center;
     }
-    
+
     /* Waitlist Form Page */
     .waitlist-main {
         padding: 100px 0 60px;
     }
-    
+
     .waitlist-grid {
         grid-template-columns: 1fr;
         gap: 32px;
     }
-    
+
     .waitlist-illustration {
-        grid-row: 1; /* Illustration stacks above form */
+        grid-row: 1;
+        /* Illustration stacks above form */
     }
-    
+
     .waitlist-illustration img {
         max-width: 260px;
     }
-    
+
     .waitlist-form-container {
         padding: 28px 20px;
     }
-    
+
     .waitlist-form-container h2 {
         font-size: 26px;
     }
@@ -1099,19 +1142,19 @@ footer p {
     .container {
         padding: 0 16px;
     }
-    
+
     .hero h1 {
         font-size: 28px;
     }
-    
+
     .hero-image img {
         max-width: 200px;
     }
-    
+
     .solution-header h2 {
         font-size: 26px;
     }
-    
+
     .btn {
         width: 100%;
     }
@@ -1149,6 +1192,7 @@ footer p {
         opacity: 0;
         transform: translateY(-4px);
     }
+
     to {
         opacity: 1;
         transform: translateY(0);
@@ -1184,6 +1228,7 @@ footer p {
     line-height: 1;
     background: linear-gradient(135deg, var(--dalio-green), var(--purple-ai));
     -webkit-background-clip: text;
+    background-clip: text;
     -webkit-text-fill-color: transparent;
     margin-bottom: 16px;
 }
@@ -1202,4 +1247,3 @@ footer p {
     line-height: 1.6;
     margin-bottom: 32px;
 }
-
