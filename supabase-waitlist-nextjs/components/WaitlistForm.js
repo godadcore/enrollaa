@@ -41,23 +41,6 @@ export default function WaitlistForm() {
     }
 
     try {
-      console.log('Verifying duplicate email on waitlist table...');
-      const { data: existing, error: selectError } = await supabase
-        .from('waitlist')
-        .select('email')
-        .eq('email', email.trim().toLowerCase())
-        .maybeSingle();
-
-      if (selectError) {
-        console.error('Supabase SELECT Verification Error:', selectError);
-      }
-
-      if (existing) {
-        showToast("You're already on the waitlist! 😊", 'error');
-        setLoading(false);
-        return;
-      }
-
       console.log('Inserting into waitlist table with structure:', {
         name: name.trim(),
         email: email.trim().toLowerCase(),
@@ -65,7 +48,7 @@ export default function WaitlistForm() {
         jamb_candidate: jambCandidate
       });
 
-      // Insert record matching exact lowercase fields
+      // Insert record matching exact lowercase fields (Postgres enforces unique email constraint natively)
       const { error: insertError } = await supabase
         .from('waitlist')
         .insert([{ 
@@ -76,6 +59,11 @@ export default function WaitlistForm() {
         }]);
 
       if (insertError) {
+        if (insertError.code === '23505' || (insertError.message && (insertError.message.includes('unique') || insertError.message.includes('already exists')))) {
+          showToast("You're already on the waitlist! 😊", 'error');
+          setLoading(false);
+          return;
+        }
         console.error('Supabase INSERT Query Error details:', insertError);
         throw insertError;
       }

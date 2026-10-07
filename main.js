@@ -65,9 +65,53 @@ document.addEventListener("DOMContentLoaded", () => {
         });
     }
 
+    // ─── Avatar Shuffling Logic ────────────────────────────────────────────────
+    const AVATAR_FILES = [
+        "avatar/avatar1.jpg",
+        "avatar/avatar2.jpg",
+        "avatar/avatar3.jpg",
+        "avatar/avatar4.jpg",
+        "avatar/avatar5.jpg",
+        "avatar/avatar6.jpg"
+    ];
+
+    function shuffleArray(arr) {
+        const shuffled = [...arr];
+        for (let i = shuffled.length - 1; i > 0; i--) {
+            const j = Math.floor(Math.random() * (i + 1));
+            [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
+        }
+        return shuffled;
+    }
+
+    function shuffleAvatars() {
+        const avatarGroups = document.querySelectorAll(".avatar-group");
+        avatarGroups.forEach(group => {
+            const imgs = group.querySelectorAll("img");
+            if (imgs.length === 0) return;
+
+            const randomSelection = shuffleArray(AVATAR_FILES);
+            imgs.forEach((img, idx) => {
+                if (randomSelection[idx]) {
+                    img.style.transition = "opacity 0.3s ease, transform 0.3s ease";
+                    img.style.opacity = "0.4";
+                    img.style.transform = "scale(0.9)";
+                    setTimeout(() => {
+                        img.src = randomSelection[idx];
+                        img.style.opacity = "1";
+                        img.style.transform = "scale(1)";
+                    }, 150);
+                }
+            });
+        });
+    }
+
+    // Initialize shuffle on load + periodic shuffle every 7 seconds
+    shuffleAvatars();
+    setInterval(shuffleAvatars, 7000);
+
     // ─── Validation Helpers ────────────────────────────────────────────────────
 
-    // Accepts any syntactically valid email (personal + business domains)
     function isValidEmail(val) {
         return /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(val);
     }
@@ -100,11 +144,80 @@ document.addEventListener("DOMContentLoaded", () => {
         document.querySelectorAll(".input-valid").forEach(el => el.classList.remove("input-valid"));
     }
 
-    // Initialize Supabase Client directly on front-end
-    // KEY: Supabase anon/public key — safe for browser (new sb_publishable_ format)
+    // ─── Supabase Client Setup & Headcount Counter ─────────────────────────────
     const supabaseUrl = 'https://pbfvnxrsuavxychyiphs.supabase.co';
     const supabaseKey = 'sb_publishable_iGsfsJmZ6bW0P8M7X_ahjg_j7KvtGUf';
-    const supabaseClient = window.supabase ? window.supabase.createClient(supabaseUrl, supabaseKey) : null;
+    const supabaseClient = (window.supabase && typeof window.supabase.createClient === 'function') 
+        ? window.supabase.createClient(supabaseUrl, supabaseKey) 
+        : null;
+
+    /**
+     * Format number according to requirements:
+     * - Base count starting at 50+
+     * - Counts 51+, 52+, 53+, etc.
+     * - Reaches 1,000 -> 1K+
+     * - Reaches 500,000 -> 500K+
+     * - Reaches 1,000,000 -> 1M+
+     * - Reaches 100,000,000 -> 100M+
+     */
+    function formatStudentCount(supabaseCount) {
+        const BASE_COUNT = 50;
+        const total = BASE_COUNT + (parseInt(supabaseCount, 10) || 0);
+
+        if (total < 1000) {
+            return `${total}+`;
+        } else if (total < 1000000) {
+            const k = total / 1000;
+            const formatted = (k % 1 === 0) ? k.toFixed(0) : k.toFixed(1).replace(/\.0$/, '');
+            return `${formatted}K`;
+        } else if (total < 1000000000) {
+            const m = total / 1000000;
+            const formatted = (m % 1 === 0) ? m.toFixed(0) : m.toFixed(1).replace(/\.0$/, '');
+            return `${formatted}M`;
+        } else {
+            const b = total / 1000000000;
+            const formatted = (b % 1 === 0) ? b.toFixed(0) : b.toFixed(1).replace(/\.0$/, '');
+            return `${formatted}B`;
+        }
+    }
+
+    let cachedDbCount = 0;
+
+    async function fetchWaitlistCount() {
+        if (!supabaseClient) return cachedDbCount;
+
+        try {
+            const { data, error } = await supabaseClient.rpc('get_waitlist_count');
+
+            if (error) {
+                console.warn("[Enrollaa] Could not fetch count via RPC from Supabase:", error.message || error);
+                return cachedDbCount;
+            }
+
+            if (typeof data === 'number') {
+                cachedDbCount = data;
+            }
+            return cachedDbCount;
+        } catch (err) {
+            console.warn("[Enrollaa] Exception fetching Supabase count RPC:", err.message || err);
+            return cachedDbCount;
+        }
+    }
+
+    async function refreshHeadcountDisplay() {
+        const dbCount = await fetchWaitlistCount();
+        const formatted = formatStudentCount(dbCount);
+
+        const countElements = document.querySelectorAll(".headcount-count");
+        if (countElements.length > 0) {
+            countElements.forEach(el => {
+                el.textContent = formatted;
+            });
+        }
+    }
+
+    // Refresh count on load
+    refreshHeadcountDisplay();
 
     // 3. Waitlist Form Submission Handlers
     const waitlistForm = document.getElementById("waitlist-form");
@@ -154,28 +267,10 @@ document.addEventListener("DOMContentLoaded", () => {
 
             try {
                 if (!supabaseClient) {
-                    throw new Error("Supabase SDK failed to load. Please check your internet connection.");
+                    throw new Error("Database service is currently unreachable. Please verify your internet connection or database configuration.");
                 }
 
-                // Check for duplicate email locally first
-                const { data: existing, error: selectError } = await supabaseClient
-                    .from('waitlist')
-                    .select('email')
-                    .eq('email', email.toLowerCase())
-                    .maybeSingle();
-
-                if (selectError) {
-                    console.error("Supabase select verification error:", selectError);
-                }
-
-                if (existing) {
-                    showFieldError("email", "This email is already registered on the waitlist!");
-                    submitBtn.disabled = false;
-                    submitBtn.textContent = originalBtnText;
-                    return;
-                }
-
-                // Insert directly to database
+                // Insert directly to database (Postgres enforces unique constraint on email securely)
                 const { data, error } = await supabaseClient
                     .from('waitlist')
                     .insert([{
@@ -186,16 +281,24 @@ document.addEventListener("DOMContentLoaded", () => {
                     }]);
 
                 if (error) {
-                    console.error("Supabase insert details error:", error);
+                    // Unique constraint violation (duplicate email)
+                    if (error.code === '23505' || (error.message && (error.message.includes('unique') || error.message.includes('already exists')))) {
+                        showFieldError("email", "This email is already registered on the waitlist!");
+                        submitBtn.disabled = false;
+                        submitBtn.textContent = originalBtnText;
+                        return;
+                    }
+                    console.error("[Enrollaa] Supabase insert details error:", error);
                     throw error;
                 }
 
-                // Trigger Edge Function to send welcome email after successful insert.
-                // Uses supabaseClient.functions.invoke() — the Supabase JS client
-                // handles CORS and auth automatically. Raw fetch() causes CORS
-                // preflight failures because the gateway rejects bare OPTIONS requests.
+                // Increment cached db count and update display live
+                cachedDbCount += 1;
+                refreshHeadcountDisplay();
+
+                // Trigger Edge Function to send welcome email after successful insert
                 try {
-                    console.log("[waitlist] Invoking send-welcome-email via Supabase client...");
+                    console.log("[Enrollaa] Invoking send-welcome-email via Supabase client...");
 
                     const { data: fnData, error: fnError } = await supabaseClient.functions.invoke(
                         'send-welcome-email',
@@ -205,14 +308,12 @@ document.addEventListener("DOMContentLoaded", () => {
                     );
 
                     if (fnError) {
-                        // Log but don't block — data is already saved
-                        console.error("[waitlist] Edge Function error:", fnError.message || fnError);
+                        console.error("[Enrollaa] Edge Function error:", fnError.message || fnError);
                     } else {
-                        console.log("[waitlist] Edge Function success:", fnData);
+                        console.log("[Enrollaa] Edge Function success:", fnData);
                     }
                 } catch (fnErr) {
-                    // Network failure, timeout, etc. — data is saved, email is best-effort
-                    console.error("[waitlist] Edge Function exception:", fnErr.message);
+                    console.error("[Enrollaa] Edge Function exception:", fnErr.message);
                 }
 
                 // Show Success State
@@ -229,7 +330,7 @@ document.addEventListener("DOMContentLoaded", () => {
                     toggleInput.value = "yes";
                 }
             } catch (err) {
-                console.error("Failed to submit waitlist form:", err);
+                console.error("[Enrollaa] Failed to submit waitlist form:", err);
                 const globalErrorDiv = document.getElementById("form-message");
                 if (globalErrorDiv) {
                     globalErrorDiv.textContent = err.message || "Failed to join waitlist. Please try again.";
