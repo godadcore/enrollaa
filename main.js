@@ -65,14 +65,13 @@ document.addEventListener("DOMContentLoaded", () => {
         });
     }
 
-    // ─── Avatar Shuffling Logic ────────────────────────────────────────────────
-    const AVATAR_FILES = [
+    // ─── Avatar & Headcount Logic ──────────────────────────────────────────────
+    const EXISTING_AVATARS = [
         "avatar/avatar1.jpg",
         "avatar/avatar2.jpg",
         "avatar/avatar3.jpg",
         "avatar/avatar4.jpg",
-        "avatar/avatar5.jpg",
-        "avatar/avatar6.jpg"
+        "avatar/avatar5.jpg"
     ];
 
     function shuffleArray(arr) {
@@ -84,31 +83,33 @@ document.addEventListener("DOMContentLoaded", () => {
         return shuffled;
     }
 
-    function shuffleAvatars() {
-        const avatarGroups = document.querySelectorAll(".avatar-group");
-        avatarGroups.forEach(group => {
-            const imgs = group.querySelectorAll("img");
-            if (imgs.length === 0) return;
+    let currentWaitlistCount = null;
 
-            const randomSelection = shuffleArray(AVATAR_FILES);
+    function updateAvatarDisplay(waitlistCount) {
+        const count = (typeof waitlistCount === 'number' && !isNaN(waitlistCount)) ? waitlistCount : 0;
+        const avatarsToShow = Math.min(Math.max(0, count), 5);
+        const avatarGroups = document.querySelectorAll(".avatar-group");
+
+        avatarGroups.forEach(group => {
+            if (avatarsToShow === 0) {
+                group.style.display = "none";
+                return;
+            }
+
+            group.style.display = "flex";
+            const imgs = group.querySelectorAll("img");
+            const shuffled = shuffleArray(EXISTING_AVATARS);
+
             imgs.forEach((img, idx) => {
-                if (randomSelection[idx]) {
-                    img.style.transition = "opacity 0.3s ease, transform 0.3s ease";
-                    img.style.opacity = "0.4";
-                    img.style.transform = "scale(0.9)";
-                    setTimeout(() => {
-                        img.src = randomSelection[idx];
-                        img.style.opacity = "1";
-                        img.style.transform = "scale(1)";
-                    }, 150);
+                if (idx < avatarsToShow) {
+                    img.style.display = "inline-block";
+                    img.src = shuffled[idx];
+                } else {
+                    img.style.display = "none";
                 }
             });
         });
     }
-
-    // Initialize shuffle on load + periodic shuffle every 7 seconds
-    shuffleAvatars();
-    setInterval(shuffleAvatars, 7000);
 
     // ─── Validation Helpers ────────────────────────────────────────────────────
 
@@ -144,80 +145,96 @@ document.addEventListener("DOMContentLoaded", () => {
         document.querySelectorAll(".input-valid").forEach(el => el.classList.remove("input-valid"));
     }
 
-    // ─── Supabase Client Setup & Headcount Counter ─────────────────────────────
+    // ─── Supabase Client Setup & Real Headcount Counter ────────────────────────
     const supabaseUrl = 'https://pbfvnxrsuavxychyiphs.supabase.co';
     const supabaseKey = 'sb_publishable_iGsfsJmZ6bW0P8M7X_ahjg_j7KvtGUf';
     const supabaseClient = (window.supabase && typeof window.supabase.createClient === 'function') 
         ? window.supabase.createClient(supabaseUrl, supabaseKey) 
         : null;
 
-    /**
-     * Format number according to requirements:
-     * - Base count starting at 50+
-     * - Counts 51+, 52+, 53+, etc.
-     * - Reaches 1,000 -> 1K+
-     * - Reaches 500,000 -> 500K+
-     * - Reaches 1,000,000 -> 1M+
-     * - Reaches 100,000,000 -> 100M+
-     */
-    function formatStudentCount(supabaseCount) {
-        const BASE_COUNT = 50;
-        const total = BASE_COUNT + (parseInt(supabaseCount, 10) || 0);
-
-        if (total < 1000) {
-            return `${total}+`;
-        } else if (total < 1000000) {
-            const k = total / 1000;
+    function formatNumberAbbrev(num) {
+        if (num < 1000) {
+            return `${num}`;
+        } else if (num < 1000000) {
+            const k = num / 1000;
             const formatted = (k % 1 === 0) ? k.toFixed(0) : k.toFixed(1).replace(/\.0$/, '');
             return `${formatted}K`;
-        } else if (total < 1000000000) {
-            const m = total / 1000000;
+        } else if (num < 1000000000) {
+            const m = num / 1000000;
             const formatted = (m % 1 === 0) ? m.toFixed(0) : m.toFixed(1).replace(/\.0$/, '');
             return `${formatted}M`;
         } else {
-            const b = total / 1000000000;
+            const b = num / 1000000000;
             const formatted = (b % 1 === 0) ? b.toFixed(0) : b.toFixed(1).replace(/\.0$/, '');
             return `${formatted}B`;
         }
     }
 
-    let cachedDbCount = 0;
+    function formatWaitlistText(count, isHomePage) {
+        if (typeof count !== 'number' || isNaN(count)) {
+            return "Join the waitlist";
+        }
+
+        if (count <= 0) {
+            return "Be among the first students on the waitlist";
+        }
+
+        const formattedNumber = `${formatNumberAbbrev(count)}+`;
+        const noun = (count === 1) ? "student" : "students";
+        const suffix = isHomePage ? "already on the waitlist" : "on the waitlist";
+
+        return `Join ${formattedNumber} ${noun} ${suffix}`;
+    }
 
     async function fetchWaitlistCount() {
-        if (!supabaseClient) return cachedDbCount;
+        if (!supabaseClient) return null;
 
         try {
             const { data, error } = await supabaseClient.rpc('get_waitlist_count');
 
             if (error) {
                 console.warn("[Enrollaa] Could not fetch count via RPC from Supabase:", error.message || error);
-                return cachedDbCount;
+                return null;
             }
 
             if (typeof data === 'number') {
-                cachedDbCount = data;
+                return data;
             }
-            return cachedDbCount;
+            return null;
         } catch (err) {
             console.warn("[Enrollaa] Exception fetching Supabase count RPC:", err.message || err);
-            return cachedDbCount;
+            return null;
         }
     }
 
     async function refreshHeadcountDisplay() {
-        const dbCount = await fetchWaitlistCount();
-        const formatted = formatStudentCount(dbCount);
+        const isHomePage = window.location.pathname.endsWith("index.html") || 
+                           window.location.pathname === "/" || 
+                           window.location.pathname === "" ||
+                           !window.location.pathname.includes("waitlist.html");
 
-        const countElements = document.querySelectorAll(".headcount-count");
-        if (countElements.length > 0) {
-            countElements.forEach(el => {
-                el.textContent = formatted;
-            });
-        }
+        const countElements = document.querySelectorAll(".headcount-text");
+
+        const count = await fetchWaitlistCount();
+        currentWaitlistCount = count;
+
+        const text = formatWaitlistText(count, isHomePage);
+        countElements.forEach(el => {
+            el.textContent = text;
+        });
+
+        updateAvatarDisplay(count);
     }
 
     // Refresh count on load
     refreshHeadcountDisplay();
+
+    // Periodic avatar shuffle if count > 0
+    setInterval(() => {
+        if (currentWaitlistCount !== null && currentWaitlistCount > 0) {
+            updateAvatarDisplay(currentWaitlistCount);
+        }
+    }, 7000);
 
     // 3. Waitlist Form Submission Handlers
     const waitlistForm = document.getElementById("waitlist-form");
@@ -292,8 +309,10 @@ document.addEventListener("DOMContentLoaded", () => {
                     throw error;
                 }
 
-                // Increment cached db count and update display live
-                cachedDbCount += 1;
+                // Increment count and update display live
+                if (typeof currentWaitlistCount === 'number') {
+                    currentWaitlistCount += 1;
+                }
                 refreshHeadcountDisplay();
 
                 // Trigger Edge Function to send welcome email after successful insert
