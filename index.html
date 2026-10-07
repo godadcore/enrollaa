@@ -8,7 +8,7 @@
     <meta name="keywords" content="JAMB admission status, check admission list Nigeria, JAMB UTME 2026, Nigerian university admission tracker, polytechnic admission list, JAMB cut off mark 2026, post UTME screening, admission checker Nigeria, JAMB score calculator, university admission alert, Enrollaa, edutech Nigeria, JAMB CBT, JAMB result checker, Nigerian school admission portal, WAEC result admission, direct entry admission Nigeria, educational UI UX design, university portal UI UX, Nigerian student portals, JAMB portal login">
     <meta name="robots" content="index, follow">
     <meta name="author" content="Enrollaa">
-    <link rel="canonical" href="https://enrollaa.com/">
+    <link rel="canonical" href="https://enrollaa.com.ng/">
 
     <!-- Favicons -->
     <link rel="icon" type="image/svg+xml" href="Dark mode App And Socials Icon.svg" media="(prefers-color-scheme: dark)">
@@ -18,20 +18,40 @@
 
     <!-- Open Graph / Facebook -->
     <meta property="og:type" content="website">
-    <meta property="og:url" content="https://enrollaa.com/">
-    <meta property="og:title" content="Enrollaa | Track Your JAMB Admission in Real Time">
-    <meta property="og:description" content="Never miss your university admission. Enrollaa tracks admission lists 24/7, gives you AI-powered JAMB score insights, and keeps you scam-free. Built for Nigerian students.">
+    <meta property="og:url" content="https://enrollaa.com.ng/">
+    <meta property="og:title" content="Enrollaa | Track Your JAMB Admission Status in Real Time">
+    <meta property="og:description" content="Enrollaa helps Nigerian students track university and polytechnic admission lists in real time. Get AI-powered JAMB score analysis, post UTME updates, cut-off marks, and admission alerts.">
     <meta property="og:site_name" content="Enrollaa">
-    <meta property="og:image" content="https://enrollaa.com/OG%20image.png">
+    <meta property="og:image" content="https://enrollaa.com.ng/OG-image.png">
+    <meta property="og:image:secure_url" content="https://enrollaa.com.ng/OG-image.png">
+    <meta property="og:image:type" content="image/png">
     <meta property="og:image:width" content="1200">
     <meta property="og:image:height" content="630">
 
     <!-- Twitter Card -->
     <meta name="twitter:card" content="summary_large_image">
     <meta name="twitter:site" content="@useenrollaa">
-    <meta name="twitter:title" content="Enrollaa | Track Your JAMB Admission in Real Time">
+    <meta name="twitter:title" content="Enrollaa | Track Your JAMB Admission Status in Real Time">
     <meta name="twitter:description" content="AI-powered admission tracking for Nigerian students. Check your JAMB admission status, get score insights, and stay ahead with real-time alerts.">
-    <meta name="twitter:image" content="https://enrollaa.com/OG%20image.png">
+    <meta name="twitter:image" content="https://enrollaa.com.ng/OG-image.png">
+
+    <!-- Structured Data (JSON-LD) -->
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": "SoftwareApplication",
+      "name": "Enrollaa",
+      "operatingSystem": "Web",
+      "applicationCategory": "EducationalApplication",
+      "offers": {
+        "@type": "Offer",
+        "price": "0",
+        "priceCurrency": "NGN"
+      },
+      "description": "Enrollaa helps Nigerian students track tertiary admission lists in real time with AI-powered JAMB score analysis.",
+      "url": "https://enrollaa.com.ng/"
+    }
+    </script>
 
     <link rel="stylesheet" href="style.css">
     <!-- Supabase JS Client CDN -->
@@ -88,14 +108,8 @@
                     
                     <!-- Headcount & Avatars row for Social Proof -->
                     <div class="headcount-container">
-                        <div class="avatar-group">
-                            <img src="avatar/avatar1.jpg" alt="Avatar" class="avatar-img">
-                            <img src="avatar/avatar2.jpg" alt="Avatar" class="avatar-img">
-                            <img src="avatar/avatar3.jpg" alt="Avatar" class="avatar-img">
-                            <img src="avatar/avatar4.jpg" alt="Avatar" class="avatar-img">
-                            <img src="avatar/avatar5.jpg" alt="Avatar" class="avatar-img">
-                        </div>
-                        <span class="headcount-text">Loading waitlist...</span>
+                        <div class="avatar-group" style="display: none;"></div>
+                        <span class="headcount-text"><span class="headcount-skeleton"></span></span>
                     </div>
                 </div>
             </div>

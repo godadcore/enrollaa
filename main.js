@@ -93,21 +93,18 @@ document.addEventListener("DOMContentLoaded", () => {
         avatarGroups.forEach(group => {
             if (avatarsToShow === 0) {
                 group.style.display = "none";
+                group.innerHTML = "";
                 return;
             }
 
             group.style.display = "flex";
-            const imgs = group.querySelectorAll("img");
             const shuffled = shuffleArray(EXISTING_AVATARS);
-
-            imgs.forEach((img, idx) => {
-                if (idx < avatarsToShow) {
-                    img.style.display = "inline-block";
-                    img.src = shuffled[idx];
-                } else {
-                    img.style.display = "none";
-                }
-            });
+            
+            let html = "";
+            for (let i = 0; i < avatarsToShow; i++) {
+                html += `<img src="${shuffled[i]}" alt="Student Avatar" class="avatar-img">`;
+            }
+            group.innerHTML = html;
         });
     }
 

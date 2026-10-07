@@ -309,11 +309,48 @@ header {
     align-items: center;
     gap: 12px;
     flex-wrap: wrap;
+    min-height: 36px;
+}
+
+.avatar-group {
+    display: flex;
+    align-items: center;
+}
+
+.avatar-img {
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    border: 2px solid var(--dark-navy);
+    object-fit: cover;
+    margin-left: -8px;
+    transition: opacity 0.3s ease, transform 0.3s ease;
+}
+
+.avatar-img:first-child {
+    margin-left: 0;
 }
 
 .headcount-text {
     font-size: 14px;
     color: var(--text-muted-light);
+    display: inline-flex;
+    align-items: center;
+}
+
+.headcount-skeleton {
+    display: inline-block;
+    width: 140px;
+    height: 16px;
+    background: linear-gradient(90deg, rgba(255,255,255,0.08) 25%, rgba(255,255,255,0.18) 50%, rgba(255,255,255,0.08) 75%);
+    background-size: 200% 100%;
+    animation: skeleton-shimmer 1.5s infinite;
+    border-radius: 4px;
+}
+
+@keyframes skeleton-shimmer {
+    0% { background-position: 200% 0; }
+    100% { background-position: -200% 0; }
 }
 
 /* Tag Pill Styling */
