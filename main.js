@@ -99,7 +99,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
             group.style.display = "flex";
             const shuffled = shuffleArray(EXISTING_AVATARS);
-            
+
             let html = "";
             for (let i = 0; i < avatarsToShow; i++) {
                 html += `<img src="${shuffled[i]}" alt="Student Avatar" class="avatar-img">`;
@@ -145,8 +145,8 @@ document.addEventListener("DOMContentLoaded", () => {
     // ─── Supabase Client Setup & Real Headcount Counter ────────────────────────
     const supabaseUrl = 'https://pbfvnxrsuavxychyiphs.supabase.co';
     const supabaseKey = 'sb_publishable_iGsfsJmZ6bW0P8M7X_ahjg_j7KvtGUf';
-    const supabaseClient = (window.supabase && typeof window.supabase.createClient === 'function') 
-        ? window.supabase.createClient(supabaseUrl, supabaseKey) 
+    const supabaseClient = (window.supabase && typeof window.supabase.createClient === 'function')
+        ? window.supabase.createClient(supabaseUrl, supabaseKey)
         : null;
 
     function formatNumberAbbrev(num) {
@@ -205,10 +205,10 @@ document.addEventListener("DOMContentLoaded", () => {
     }
 
     async function refreshHeadcountDisplay() {
-        const isHomePage = window.location.pathname.endsWith("index.html") || 
-                           window.location.pathname === "/" || 
-                           window.location.pathname === "" ||
-                           !window.location.pathname.includes("waitlist.html");
+        const isHomePage = window.location.pathname.endsWith("index.html") ||
+            window.location.pathname === "/" ||
+            window.location.pathname === "" ||
+            !window.location.pathname.includes("waitlist.html");
 
         const countElements = document.querySelectorAll(".headcount-text");
 
@@ -300,7 +300,7 @@ document.addEventListener("DOMContentLoaded", () => {
                 if (error) {
                     // Unique constraint violation (duplicate email)
                     if (error.code === '23505' || (error.message && (error.message.toLowerCase().includes('unique') || error.message.toLowerCase().includes('already exists')))) {
-                        showFieldError("email", "You're already on the waitlist! We already have your email — you're all set. 🎉");
+                        showFieldError("email", "You're already on the waitlist! We already have your email - you're all set. 🎉");
                         submitBtn.disabled = false;
                         submitBtn.textContent = originalBtnText;
                         return;

@@ -51,16 +51,16 @@ export default function WaitlistForm() {
       // Insert record matching exact lowercase fields (Postgres enforces unique email constraint natively)
       const { error: insertError } = await supabase
         .from('waitlist')
-        .insert([{ 
-          name: name.trim(), 
-          email: email.trim().toLowerCase(), 
+        .insert([{
+          name: name.trim(),
+          email: email.trim().toLowerCase(),
           phone: phone.trim() || null,
           jamb_candidate: jambCandidate
         }]);
 
       if (insertError) {
         if (insertError.code === '23505' || (insertError.message && (insertError.message.toLowerCase().includes('unique') || insertError.message.toLowerCase().includes('already exists')))) {
-          showToast("You're already on the waitlist! We already have your email — you're all set. 🎉", 'error');
+          showToast("You're already on the waitlist! We already have your email - you're all set. 🎉", 'error');
           setLoading(false);
           return;
         }
@@ -167,14 +167,14 @@ export default function WaitlistForm() {
         <div style={styles.group}>
           <label style={styles.label}>Are you a JAMB candidate?</label>
           <div style={styles.toggleContainer}>
-            <div 
-              style={{...styles.toggleOption, ...(formData.jambCandidate ? styles.toggleOptionActive : {})}}
+            <div
+              style={{ ...styles.toggleOption, ...(formData.jambCandidate ? styles.toggleOptionActive : {}) }}
               onClick={() => toggleJambCandidate(true)}
             >
               Yes
             </div>
-            <div 
-              style={{...styles.toggleOption, ...(!formData.jambCandidate ? styles.toggleOptionActive : {})}}
+            <div
+              style={{ ...styles.toggleOption, ...(!formData.jambCandidate ? styles.toggleOptionActive : {}) }}
               onClick={() => toggleJambCandidate(false)}
             >
               No
