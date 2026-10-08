@@ -284,20 +284,23 @@ document.addEventListener("DOMContentLoaded", () => {
                     throw new Error("Database service is currently unreachable. Please verify your internet connection or database configuration.");
                 }
 
+                // Email Normalization: trim whitespace & convert to lowercase
+                const normalizedEmail = email.trim().toLowerCase();
+
                 // Insert directly to database (Postgres enforces unique constraint on email securely)
                 const { data, error } = await supabaseClient
                     .from('waitlist')
                     .insert([{
                         name: fullName,
-                        email: email.toLowerCase(),
+                        email: normalizedEmail,
                         phone: phone || null,
                         jamb_candidate: (isJamb === 'yes')
                     }]);
 
                 if (error) {
                     // Unique constraint violation (duplicate email)
-                    if (error.code === '23505' || (error.message && (error.message.includes('unique') || error.message.includes('already exists')))) {
-                        showFieldError("email", "This email is already registered on the waitlist!");
+                    if (error.code === '23505' || (error.message && (error.message.toLowerCase().includes('unique') || error.message.toLowerCase().includes('already exists')))) {
+                        showFieldError("email", "You're already on the waitlist! We already have your email — you're all set. 🎉");
                         submitBtn.disabled = false;
                         submitBtn.textContent = originalBtnText;
                         return;

@@ -59,8 +59,8 @@ export default function WaitlistForm() {
         }]);
 
       if (insertError) {
-        if (insertError.code === '23505' || (insertError.message && (insertError.message.includes('unique') || insertError.message.includes('already exists')))) {
-          showToast("You're already on the waitlist! 😊", 'error');
+        if (insertError.code === '23505' || (insertError.message && (insertError.message.toLowerCase().includes('unique') || insertError.message.toLowerCase().includes('already exists')))) {
+          showToast("You're already on the waitlist! We already have your email — you're all set. 🎉", 'error');
           setLoading(false);
           return;
         }
